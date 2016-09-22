@@ -9,8 +9,8 @@
 
 #include "scene.h"
 
-void errorCheck(int c, FILE* json, size_t* line);
-void tokenCheck(int c, char token, size_t* line);
+void errorCheck(int c, FILE* json, size_t line);
+void tokenCheck(int c, char token, size_t line);
 int jsonGetC(FILE* json, size_t* line);
 void skipWhitespace(FILE* json, size_t* line);
 char* nextString(FILE* json, size_t* line);
@@ -25,12 +25,13 @@ sceneObj* readScene(const char* path) {
     }
     size_t line = 1;
     sceneObj* objs = NULL;
+    size_t objsSize = 0;
 
     // Ignore beginning whitespace
     skipWhitespace(json, &line);
 
     int c = jsonGetC(json, &line);
-    tokenCheck(c, '[', &line);
+    tokenCheck(c, '[', line);
 
     skipWhitespace(json, &line);
     c = jsonGetC(json, &line);
@@ -40,8 +41,12 @@ sceneObj* readScene(const char* path) {
     }
 
     do {
-        char* key, *type;
-        sceneObj obj;
+        char* key;
+        if((objs = realloc(objs, ++objsSize)) == NULL) {
+            fprintf(stderr, "Error: Line %zu: Memory reallocation error\n", line);
+            perror("");
+            exit(1);
+        }
 
         skipWhitespace(json, &line);
         key = nextString(json, &line);
@@ -52,98 +57,95 @@ sceneObj* readScene(const char* path) {
 
         skipWhitespace(json, &line);
         c = fgetc(json);
-        errorCheck(c, json, &line);
-        tokenCheck(c, ':', &line);
+        errorCheck(c, json, line);
+        tokenCheck(c, ':', line);
 
         skipWhitespace(json, &line);
-        type = nextString(json, &line);
+        objs[objsSize - 1].type = nextString(json, &line);
 
-        if(strcmp(type, "camera") == 0) {
-            // Continue while there are still key-value pairs
-            while((c = fgetc(json)) != EOF && c == ',');
-            errorCheck(c, json, &line);
-
+        while((c = jsonGetC(json, &line) == ',')) {
             key = nextString(json, &line);
-            if(strcmp(type, "width")) {
-                // #TODO
+            if(strcmp(objs[objsSize - 1].type, "camera") == 0) {
+                if(strcmp(key, "width")) {
+                    // #TODO
+                }
+                else if(strcmp(key, "height")) {
+                    /// #TODO
+                }
+                else {
+                    fprintf(stderr, "Error: Line %zu: Key not supported under "
+                        "'camera'\n", line);
+                    exit(1);
+                }
             }
-            else if(strcmp(type, "height")) {
-                /// #TODO
+            else if(strcmp(objs[objsSize - 1].type, "sphere") == 0) {
+                if(strcmp(key, "color")) {
+                    // #TODO
+                }
+                else if(strcmp(key, "position")) {
+                    /// #TODO
+                }
+                else if(strcmp(key, "radius")) {
+                    // #TODO
+                }
+                else {
+                    fprintf(stderr, "Error: Line %zu: Key not supported under "
+                        "'sphere'\n", line);
+                    exit(1);
+                }
+            }
+            else if(strcmp(objs[objsSize - 1].type, "plane") == 0) {
+                if(strcmp(key, "color")) {
+                    // #TODO
+                }
+                else if(strcmp(key, "position")) {
+                    /// #TODO
+                }
+                else if(strcmp(key, "normal")) {
+                    // #TODO
+                }
+                else {
+                    fprintf(stderr, "Error: Line %zu: Key not supported under "
+                        "'plane'\n", line);
+                    exit(1);
+                }
             }
             else {
-                fprintf(stderr, "Error: Key not supported under 'camera'\n");
+                fprintf(stderr, "Error: Line %zu: Unknown type %s", line,
+                    objs[objsSize - 1].type);
+                exit(1);
             }
-        }
-        else if(strcmp(type, "sphere") == 0) {
-            // Continue while there are still key-value pairs
-            while((c = fgetc(json)) != EOF && c == ',');
-            errorCheck(c, json, &line);
-
-            key = nextString(json, &line);
-            if(strcmp(type, "color")) {
-                // #TODO
-            }
-            else if(strcmp(type, "position")) {
-                /// #TODO
-            }
-            else if(strcmp(type, "radius")) {
-                // #TODO
-            }
-            else {
-                fprintf(stderr, "Error: Key not supported under 'sphere'\n");
-            }
-        }
-        else if(strcmp(type, "plane") == 0) {
-            // Continue while there are still key-value pairs
-            while((c = jsonGetC(json, &line)) == ',');
-
-            key = nextString(json, &line);
-            if(strcmp(type, "color")) {
-                // #TODO
-            }
-            else if(strcmp(type, "position")) {
-                /// #TODO
-            }
-            else if(strcmp(type, "normal")) {
-                // #TODO
-            }
-            else {
-                fprintf(stderr, "Error: Key not supported under 'plane'\n");
-            }
-        }
-        else {
-            fprintf(stderr, "Error: Line %zu: Unknown property %s", line, key);
-            exit(1);
         }
     }
+    while(c == ',');
 
     return 0;
 }
 
-void errorCheck(int c, FILE* fp, size_t* line) {
+void errorCheck(int c, FILE* fp, size_t line) {
     if(c == EOF) {
         if(feof(fp)) {
-            fprintf(stderr, "Error: Premature end-of-file\n");
+            fprintf(stderr, "Error: Line %zu: Premature end-of-file\n", line);
             exit(1);
         }
         else if(ferror(fp)) {
-            fprintf(stderr, "Error: Line Read error\n");
+            fprintf(stderr, "Error: Line %zu: Read error\n", line);
             perror("");
             exit(1);
         }
     }
 }
 
-void tokenCheck(int c, char token, size_t* line) {
+void tokenCheck(int c, char token, size_t line) {
     if(c != token) {
-        fprintf(stderr, "Error: Line %zu: Expected '%c'\n", *line, token);
+        fprintf(stderr, "Error: Line %zu: Expected '%c'\n", line, token);
         exit(1);
     }
 }
 
 int jsonGetC(FILE* json, size_t* line) {
     int c = fgetc(json);
-    errorCheck(c, json, line);
+    errorCheck(c, json, *line);
     if(c == '\n') {
         *line += 1;
     }
@@ -179,7 +181,7 @@ char* nextString(FILE* json, size_t* line) {
     size_t i;
 
     c = jsonGetC(json, line);
-    tokenCheck(c, '"', line);
+    tokenCheck(c, '"', *line);
 
     i = 0;
     while(i < bufferSize - 1 && (c = jsonGetC(json, line)) != '"') {
@@ -210,8 +212,8 @@ char* nextString(FILE* json, size_t* line) {
 
 double nextNumber(FILE* json, size_t* line) {
     double value;
-    int status = scanf(json, "%f", &value);
-    errorCheck(status, json, line);
+    int status = fscanf(json, "%lf", &value);
+    errorCheck(status, json, *line);
     if(status < 1) {
         fprintf(stderr, "Error: Line %zu: Invalid number\n", *line);
         exit(1);
@@ -240,7 +242,7 @@ double* nextVector3d(FILE* json, size_t* line) {
         exit(1);
     }
     int c = jsonGetC(json, line);
-    tokenCheck(c, '[', line);
+    tokenCheck(c, '[', *line);
 
     skipWhitespace(json, line);
     for(size_t i = 0; i < SIZE; i++) {
@@ -249,13 +251,13 @@ double* nextVector3d(FILE* json, size_t* line) {
 
         if(i < SIZE - 1) {
             c = jsonGetC(json, line);
-            tokenCheck(c, ',', line);
+            tokenCheck(c, ',', *line);
             skipWhitespace(json, line);
         }
     }
 
     c = jsonGetC(json, line);
-    tokenCheck(c, ']', line);
+    tokenCheck(c, ']', *line);
 
     return vector;
 }
