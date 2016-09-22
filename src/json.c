@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <math.h>
+#include <errno.h>
 
 void errorCheck(int c, FILE* fp) {
     if(c == EOF) {
@@ -52,10 +54,52 @@ char* parseString(FILE* json) {
         }
         buffer[i++] = c;
     }
+    errorCheck(c, json);
     buffer[i] = '\0';
 
-    return strdup(buffer);
+    return buffer;
 }
+
+double parseNumber(FILE* json) {
+    char buffer[64], *endptr;
+    int c;
+    size_t i = 0;
+    double value;
+
+    while(i < sizeof(buffer) - 1 && (c = fgetc(json)) != EOF &&
+            c != ',' && c != '}' && c != ']') {
+        buffer[i++] = c;
+    }
+    errorCheck(c, json);
+    buffer[i] = '\0';
+
+    errno = 0;
+    value = strtod(buffer, &endptr);
+    if(*buffer == '\0') {
+        fprintf(stderr, "Error: Empty number\n");
+        exit(1);
+    }
+    if(endptr != buffer + i) {
+        fprintf(stderr, "Error: Invalid JSON number\n");
+        exit(1);
+    }
+    if(errno == ERANGE) {
+        if(value == 0) {
+            fprintf(stderr, "Error: Number underflow\n");
+        }
+        if(value == HUGE_VAL || value == -HUGE_VAL) {
+            fprintf(stderr, "Error: Number overflow\n");
+        }
+    }
+
+    if(ungetc(c, json) == EOF) {
+        perror("Error: Read error");
+        exit(1);
+    }
+
+    return value;
+}
+
 
 void skipWhitespace(FILE* fp) {
     int c;
@@ -63,13 +107,13 @@ void skipWhitespace(FILE* fp) {
     while((c = fgetc(fp)) != EOF || isspace(c));
     errorCheck(c, fp);
     if(ungetc(c, fp) == EOF) {
-        fprintf(stderr, "Error: Read error ungetting character\n");
+        perror("Error: Read error\n");
         exit(1);
     }
 }
 
 int main(int argc, char const *argv[]) {
-    FILE* json = fopen("input.json", "r");
+    FILE* json = fopen(argv[3], "r");
     if(json == NULL) {
         perror("Error: Opening input\n");
         return 1;
