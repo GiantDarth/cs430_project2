@@ -1,3 +1,5 @@
+#define __USE_MINGW_ANSI_STDIO 1
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -5,159 +7,63 @@
 #include <math.h>
 #include <errno.h>
 
-void errorCheck(int c, FILE* fp) {
-    if(c == EOF) {
-        if(feof(fp)) {
-            fprintf(stderr, "Error: Premature end-of-file\n");
-            exit(1);
-        }
-        else if(ferror(fp)) {
-            fprintf(stderr, "Error: Read error\n");
-            exit(1);
-        }
-    }
-}
+#include "scene.h"
 
-char* parseString(FILE* json) {
-    size_t bufferSize = 64;
-    size_t oldSize = bufferSize;
-    char* buffer = malloc(bufferSize);
-    if(buffer == NULL) {
-        perror("Error: Memory allocation error\n");
-        exit(1);
-    }
-    int c;
-    size_t i;
+void errorCheck(int c, FILE* json, size_t* line);
+void tokenCheck(int c, char token, size_t* line);
+int jsonGetC(FILE* json, size_t* line);
+void skipWhitespace(FILE* json, size_t* line);
+char* nextString(FILE* json, size_t* line);
+double nextNumber(FILE* json, size_t* line);
+double* nextVector3d(FILE* json, size_t* line);
 
-    c = fgetc(json);
-    if(c != '"') {
-        fprintf(stderr, "Error: Expected string.\n");
-        exit(1);
-    }
-
-    i = 0;
-    while(i < bufferSize - 1 && (c = fgetc(json)) != '"' && c != EOF) {
-        if(i == bufferSize - 2) {
-            bufferSize *= 2;
-            // Integer overflow
-            if(oldSize != 0 && bufferSize / oldSize != 2) {
-                fprintf(stderr, "Error: Integer overflow on size\n");
-                exit(1);
-            }
-
-            oldSize = bufferSize;
-            buffer = realloc(buffer, bufferSize);
-            if(buffer == NULL) {
-                perror("Error: Memory allocation error\n");
-                exit(1);
-            }
-        }
-        buffer[i++] = c;
-    }
-    errorCheck(c, json);
-    buffer[i] = '\0';
-
-    return buffer;
-}
-
-double parseNumber(FILE* json) {
-    char buffer[64], *endptr;
-    int c;
-    size_t i = 0;
-    double value;
-
-    while(i < sizeof(buffer) - 1 && (c = fgetc(json)) != EOF &&
-            c != ',' && c != '}' && c != ']') {
-        buffer[i++] = c;
-    }
-    errorCheck(c, json);
-    buffer[i] = '\0';
-
-    errno = 0;
-    value = strtod(buffer, &endptr);
-    if(*buffer == '\0') {
-        fprintf(stderr, "Error: Empty number\n");
-        exit(1);
-    }
-    if(endptr != buffer + i) {
-        fprintf(stderr, "Error: Invalid JSON number\n");
-        exit(1);
-    }
-    if(errno == ERANGE) {
-        if(value == 0) {
-            fprintf(stderr, "Error: Number underflow\n");
-        }
-        if(value == HUGE_VAL || value == -HUGE_VAL) {
-            fprintf(stderr, "Error: Number overflow\n");
-        }
-    }
-
-    if(ungetc(c, json) == EOF) {
-        perror("Error: Read error");
-        exit(1);
-    }
-
-    return value;
-}
-
-
-void skipWhitespace(FILE* fp) {
-    int c;
-
-    while((c = fgetc(fp)) != EOF || isspace(c));
-    errorCheck(c, fp);
-    if(ungetc(c, fp) == EOF) {
-        perror("Error: Read error\n");
-        exit(1);
-    }
-}
-
-int main(int argc, char const *argv[]) {
-    FILE* json = fopen(argv[3], "r");
+sceneObj* readScene(const char* path) {
+    FILE* json = fopen(path, "r");
     if(json == NULL) {
         perror("Error: Opening input\n");
-        return 1;
+        exit(1);
     }
-    skipWhitespace(json);
+    size_t line = 1;
+    sceneObj* objs = NULL;
 
-    int c = fgetc(json);
-    if(c != '[') {
-        fprintf(stderr, "Error: Missing '['\n");
-        return 1;
-    }
+    // Ignore beginning whitespace
+    skipWhitespace(json, &line);
 
-    skipWhitespace(json);
-    c = fgetc(json);
-    errorCheck(c, json);
+    int c = jsonGetC(json, &line);
+    tokenCheck(c, '[', &line);
+
+    skipWhitespace(json, &line);
+    c = jsonGetC(json, &line);
     if(c == ']') {
-        return 0;
+        fprintf(stderr, "Warning: Line %zu: Empty file\n", line);
+        return NULL;
     }
 
-    while(c == '{') {
-        char* key, *type, *value, *endptr;
-        float width, height, radius;
-        float color[3], pos[3], normal[3];
+    do {
+        char* key, *type;
+        sceneObj obj;
 
-        key = parseString(json);
+        skipWhitespace(json, &line);
+        key = nextString(json, &line);
         if(strcmp(key, "type") != 0) {
             fprintf(stderr, "Error: First key must be 'type'\n");
-            return 1;
+            exit(1);
         }
-        skipWhitespace(json);
+
+        skipWhitespace(json, &line);
         c = fgetc(json);
-        errorCheck(c, json);
-        if(c != ':') {
-            return 1;
-        }
-        skipWhitespace(json);
-        type = parseString(json);
+        errorCheck(c, json, &line);
+        tokenCheck(c, ':', &line);
+
+        skipWhitespace(json, &line);
+        type = nextString(json, &line);
 
         if(strcmp(type, "camera") == 0) {
             // Continue while there are still key-value pairs
             while((c = fgetc(json)) != EOF && c == ',');
-            errorCheck(c, json);
+            errorCheck(c, json, &line);
 
-            key = parseString(json);
+            key = nextString(json, &line);
             if(strcmp(type, "width")) {
                 // #TODO
             }
@@ -171,9 +77,9 @@ int main(int argc, char const *argv[]) {
         else if(strcmp(type, "sphere") == 0) {
             // Continue while there are still key-value pairs
             while((c = fgetc(json)) != EOF && c == ',');
-            errorCheck(c, json);
+            errorCheck(c, json, &line);
 
-            key = parseString(json);
+            key = nextString(json, &line);
             if(strcmp(type, "color")) {
                 // #TODO
             }
@@ -189,10 +95,9 @@ int main(int argc, char const *argv[]) {
         }
         else if(strcmp(type, "plane") == 0) {
             // Continue while there are still key-value pairs
-            while((c = fgetc(json)) != EOF && c == ',');
-            errorCheck(c, json);
+            while((c = jsonGetC(json, &line)) == ',');
 
-            key = parseString(json);
+            key = nextString(json, &line);
             if(strcmp(type, "color")) {
                 // #TODO
             }
@@ -206,7 +111,151 @@ int main(int argc, char const *argv[]) {
                 fprintf(stderr, "Error: Key not supported under 'plane'\n");
             }
         }
+        else {
+            fprintf(stderr, "Error: Line %zu: Unknown property %s", line, key);
+            exit(1);
+        }
     }
 
     return 0;
+}
+
+void errorCheck(int c, FILE* fp, size_t* line) {
+    if(c == EOF) {
+        if(feof(fp)) {
+            fprintf(stderr, "Error: Premature end-of-file\n");
+            exit(1);
+        }
+        else if(ferror(fp)) {
+            fprintf(stderr, "Error: Line Read error\n");
+            perror("");
+            exit(1);
+        }
+    }
+}
+
+void tokenCheck(int c, char token, size_t* line) {
+    if(c != token) {
+        fprintf(stderr, "Error: Line %zu: Expected '%c'\n", *line, token);
+        exit(1);
+    }
+}
+
+int jsonGetC(FILE* json, size_t* line) {
+    int c = fgetc(json);
+    errorCheck(c, json, line);
+    if(c == '\n') {
+        *line += 1;
+    }
+
+    return c;
+}
+
+void skipWhitespace(FILE* json, size_t* line) {
+    int c;
+
+    do {
+        c = jsonGetC(json, line);
+    }
+    while(isspace(c));
+
+    if(ungetc(c, json) == EOF) {
+        fprintf(stderr, "Error: Line %zu: Read error\n", *line);
+        perror("");
+        exit(1);
+    }
+}
+
+char* nextString(FILE* json, size_t* line) {
+    size_t bufferSize = 64;
+    size_t oldSize = bufferSize;
+    char* buffer = malloc(bufferSize);
+    if(buffer == NULL) {
+        fprintf(stderr, "Error: Line %zu: Memory allocation error\n", *line);
+        perror("");
+        exit(1);
+    }
+    int c;
+    size_t i;
+
+    c = jsonGetC(json, line);
+    tokenCheck(c, '"', line);
+
+    i = 0;
+    while(i < bufferSize - 1 && (c = jsonGetC(json, line)) != '"') {
+        if(i == bufferSize - 2) {
+            bufferSize *= 2;
+            // Integer overflow
+            if(oldSize != 0 && bufferSize / oldSize != 2) {
+                fprintf(stderr, "Error: Line %zu: Integer overflow on size\n",
+                    *line);
+                exit(1);
+            }
+
+            oldSize = bufferSize;
+            buffer = realloc(buffer, bufferSize);
+            if(buffer == NULL) {
+                fprintf(stderr, "Error: Line %zu: Memory reallocation error\n",
+                    *line);
+                perror("");
+                exit(1);
+            }
+        }
+        buffer[i++] = c;
+    }
+    buffer[i] = '\0';
+
+    return buffer;
+}
+
+double nextNumber(FILE* json, size_t* line) {
+    double value;
+    int status = scanf(json, "%f", &value);
+    errorCheck(status, json, line);
+    if(status < 1) {
+        fprintf(stderr, "Error: Line %zu: Invalid number\n", *line);
+        exit(1);
+    }
+
+    if(errno == ERANGE) {
+        if(value == 0) {
+            fprintf(stderr, "Error: Line %zu: Number underflow\n", *line);
+            exit(1);
+        }
+        if(value == HUGE_VAL || value == -HUGE_VAL) {
+            fprintf(stderr, "Error: Line %zu: Number overflow\n", *line);
+            exit(1);
+        }
+    }
+
+    return value;
+}
+
+double* nextVector3d(FILE* json, size_t* line) {
+    const size_t SIZE = 3;
+    double* vector = malloc(SIZE * sizeof(*vector));
+    if(vector == NULL) {
+        fprintf(stderr, "Error: Line %zu: Memory allocation error\n", *line);
+        perror("");
+        exit(1);
+    }
+    int c = jsonGetC(json, line);
+    tokenCheck(c, '[', line);
+
+    skipWhitespace(json, line);
+    for(size_t i = 0; i < SIZE; i++) {
+        vector[i] = nextNumber(json, line);
+        skipWhitespace(json, line);
+
+        if(i < SIZE - 1) {
+            c = jsonGetC(json, line);
+            tokenCheck(c, ',', line);
+            skipWhitespace(json, line);
+        }
+    }
+
+    c = jsonGetC(json, line);
+    tokenCheck(c, ']', line);
+
+    return vector;
 }
