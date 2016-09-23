@@ -26,11 +26,13 @@ sceneObj* readScene(const char* path) {
     size_t line = 1;
     sceneObj* objs = NULL;
     size_t objsSize = 0;
+    double* vector;
+    int c;
 
     // Ignore beginning whitespace
     skipWhitespace(json, &line);
 
-    int c = jsonGetC(json, &line);
+    c = jsonGetC(json, &line);
     tokenCheck(c, '[', line);
 
     do {
@@ -83,12 +85,23 @@ sceneObj* readScene(const char* path) {
             tokenCheck(c, ':', line);
 
             skipWhitespace(json, &line);
+            // TODO: Find way to remove redundant code
             if(strcmp(objs[objsSize - 1].type, "camera") == 0) {
                 if(strcmp(key, "width")) {
-                    // #TODO
+                    objs[objsSize - 1].width = nextNumber(json, &line);
+                    if(objs[objsSize - 1].width < 0) {
+                        fprintf(stderr, "Error: Line %zu: Width cannot be negative\n",
+                            line);
+                        exit(1);
+                    }
                 }
                 else if(strcmp(key, "height")) {
-                    /// #TODO
+                    objs[objsSize - 1].height = nextNumber(json, &line);
+                    if(objs[objsSize - 1].height < 0) {
+                        fprintf(stderr, "Error: Line %zu: Height cannot be negative\n",
+                            line);
+                        exit(1);
+                    }
                 }
                 else {
                     fprintf(stderr, "Error: Line %zu: Key '%s' not supported "
@@ -98,13 +111,31 @@ sceneObj* readScene(const char* path) {
             }
             else if(strcmp(objs[objsSize - 1].type, "sphere") == 0) {
                 if(strcmp(key, "color")) {
-                    // #TODO
+                    vector = nextVector3d(json, &line);
+                    for(int i = 0; i < 3; i++) {
+                        if(vector[i] < 0 || vector[i] > 1) {
+                            fprintf(stderr, "Error: Line %zu: Color must be "
+                                "between 0.0 and 1.0\n", line);
+                            exit(1);
+                        }
+                        objs[objsSize - 1].color[i] = vector[i];
+                    }
+                    free(vector);
                 }
                 else if(strcmp(key, "position")) {
-                    /// #TODO
+                    vector = nextVector3d(json, &line);
+                    for(int i = 0; i < 3; i++) {
+                        objs[objsSize - 1].pos[i] = vector[i];
+                    }
+                    free(vector);
                 }
                 else if(strcmp(key, "radius")) {
-                    // #TODO
+                    objs[objsSize - 1].radius = nextNumber(json, &line);
+                    if(objs[objsSize - 1].radius < 0) {
+                        fprintf(stderr, "Error: Line %zu: Radius cannot be "
+                            "negative\n", line);
+                        exit(1);
+                    }
                 }
                 else {
                     fprintf(stderr, "Error: Line %zu: Key '%s' not supported "
@@ -114,13 +145,30 @@ sceneObj* readScene(const char* path) {
             }
             else if(strcmp(objs[objsSize - 1].type, "plane") == 0) {
                 if(strcmp(key, "color")) {
-                    // #TODO
+                    vector = nextVector3d(json, &line);
+                    for(int i = 0; i < 3; i++) {
+                        if(vector[i] < 0 || vector[i] > 1) {
+                            fprintf(stderr, "Error: Line %zu: Color must be "
+                                "between 0.0 and 1.0\n", line);
+                            exit(1);
+                        }
+                        objs[objsSize - 1].color[i] = vector[i];
+                    }
+                    free(vector);
                 }
                 else if(strcmp(key, "position")) {
-                    /// #TODO
+                    vector = nextVector3d(json, &line);
+                    for(int i = 0; i < 3; i++) {
+                        objs[objsSize - 1].pos[i] = vector[i];
+                    }
+                    free(vector);
                 }
                 else if(strcmp(key, "normal")) {
-                    // #TODO
+                    vector = nextVector3d(json, &line);
+                    for(int i = 0; i < 3; i++) {
+                        objs[objsSize - 1].normal[i] = vector[i];
+                    }
+                    free(vector);
                 }
                 else {
                     fprintf(stderr, "Error: Line %zu: Key '%s' not supported "
