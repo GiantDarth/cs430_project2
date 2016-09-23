@@ -33,7 +33,7 @@ sceneObj* readScene(const char* path) {
     int c = jsonGetC(json, &line);
     tokenCheck(c, '[', line);
 
-    while(objs == NULL || (c = jsonGetC(json, &line)) == ',') {
+    do {
         skipWhitespace(json, &line);
         c = jsonGetC(json, &line);
         tokenCheck(c, '{', line);
@@ -148,6 +148,7 @@ sceneObj* readScene(const char* path) {
 
         skipWhitespace(json, &line);
     }
+    while((c = jsonGetC(json, &line)) == ',');
 
     tokenCheck(c, ']', line);
 
