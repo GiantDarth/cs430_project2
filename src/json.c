@@ -35,170 +35,173 @@ sceneObj* readScene(const char* path) {
     c = jsonGetC(json, &line);
     tokenCheck(c, '[', line);
 
-    do {
-        skipWhitespace(json, &line);
-        c = jsonGetC(json, &line);
-        tokenCheck(c, '{', line);
-
-        skipWhitespace(json, &line);
-        c = jsonGetC(json, &line);
-        // Empty object, skip to next object without allocating for empty one.
-        if(c == '}') {
-            fprintf(stderr, "Warning: Line %zu: Empty object\n", line);
-            skipWhitespace(json, &line);
-            continue;
-        }
-        else if(ungetc(c, json) == EOF) {
+    skipWhitespace(json, &line);
+    c = jsonGetC(json, &line);
+    if(c != ']') {
+        if(ungetc(c, json) == EOF) {
             fprintf(stderr, "Error: Line %zu: Read error\n", line);
             perror("");
             exit(1);
         }
 
-        if((objs = realloc(objs, ++objsSize)) == NULL) {
-            fprintf(stderr, "Error: Line %zu: Memory reallocation error\n", line);
-            perror("");
-            exit(1);
-        }
-
-        char* key = nextString(json, &line);
-        if(strcmp(key, "type") != 0) {
-            fprintf(stderr, "Error: First key must be 'type'\n");
-            exit(1);
-        }
-
-        skipWhitespace(json, &line);
-        c = jsonGetC(json, &line);
-        tokenCheck(c, ':', line);
-
-        skipWhitespace(json, &line);
-        objs[objsSize - 1].type = nextString(json, &line);
-
-        skipWhitespace(json, &line);
-        while((c = jsonGetC(json, &line) == ',')) {
+        do {
             skipWhitespace(json, &line);
-            // Get key
-            key = nextString(json, &line);
+            c = jsonGetC(json, &line);
+            tokenCheck(c, '{', line);
 
-            // Get ':' token
+            skipWhitespace(json, &line);
+            c = jsonGetC(json, &line);
+            // Empty object, skip to next object without allocating for empty one.
+            if(c == '}') {
+                fprintf(stderr, "Warning: Line %zu: Empty object\n", line);
+                skipWhitespace(json, &line);
+                continue;
+            }
+            else if(ungetc(c, json) == EOF) {
+                fprintf(stderr, "Error: Line %zu: Read error\n", line);
+                perror("");
+                exit(1);
+            }
+
+            if((objs = realloc(objs, ++objsSize)) == NULL) {
+                fprintf(stderr, "Error: Line %zu: Memory reallocation error\n", line);
+                perror("");
+                exit(1);
+            }
+
+            char* key = nextString(json, &line);
+            if(strcmp(key, "type") != 0) {
+                fprintf(stderr, "Error: First key must be 'type'\n");
+                exit(1);
+            }
+
             skipWhitespace(json, &line);
             c = jsonGetC(json, &line);
             tokenCheck(c, ':', line);
 
             skipWhitespace(json, &line);
-            // TODO: Find way to remove redundant code
-            if(strcmp(objs[objsSize - 1].type, "camera") == 0) {
-                if(strcmp(key, "width")) {
-                    objs[objsSize - 1].width = nextNumber(json, &line);
-                    if(objs[objsSize - 1].width < 0) {
-                        fprintf(stderr, "Error: Line %zu: Width cannot be negative\n",
-                            line);
-                        exit(1);
-                    }
-                }
-                else if(strcmp(key, "height")) {
-                    objs[objsSize - 1].height = nextNumber(json, &line);
-                    if(objs[objsSize - 1].height < 0) {
-                        fprintf(stderr, "Error: Line %zu: Height cannot be negative\n",
-                            line);
-                        exit(1);
-                    }
-                }
-                else {
-                    fprintf(stderr, "Error: Line %zu: Key '%s' not supported "
-                        "under 'camera'\n", line, key);
-                    exit(1);
-                }
-            }
-            else if(strcmp(objs[objsSize - 1].type, "sphere") == 0) {
-                if(strcmp(key, "color")) {
-                    vector = nextVector3d(json, &line);
-                    for(int i = 0; i < 3; i++) {
-                        if(vector[i] < 0 || vector[i] > 1) {
-                            fprintf(stderr, "Error: Line %zu: Color must be "
-                                "between 0.0 and 1.0\n", line);
+            objs[objsSize - 1].type = nextString(json, &line);
+
+            skipWhitespace(json, &line);
+            while((c = jsonGetC(json, &line)) == ',') {
+                skipWhitespace(json, &line);
+                // Get key
+                key = nextString(json, &line);
+
+                // Get ':' token
+                skipWhitespace(json, &line);
+                c = jsonGetC(json, &line);
+                tokenCheck(c, ':', line);
+
+                skipWhitespace(json, &line);
+                // TODO: Find way to remove redundant code
+                if(strcmp(objs[objsSize - 1].type, "camera") == 0) {
+                    if(strcmp(key, "width") == 0) {
+                        objs[objsSize - 1].width = nextNumber(json, &line);
+                        if(objs[objsSize - 1].width < 0) {
+                            fprintf(stderr, "Error: Line %zu: Width cannot be negative\n",
+                                line);
                             exit(1);
                         }
-                        objs[objsSize - 1].color[i] = vector[i];
                     }
-                    free(vector);
-                }
-                else if(strcmp(key, "position")) {
-                    vector = nextVector3d(json, &line);
-                    for(int i = 0; i < 3; i++) {
-                        objs[objsSize - 1].pos[i] = vector[i];
+                    else if(strcmp(key, "height") == 0) {
+                        objs[objsSize - 1].height = nextNumber(json, &line);
+                        if(objs[objsSize - 1].height < 0) {
+                            fprintf(stderr, "Error: Line %zu: Height cannot be negative\n",
+                                line);
+                            exit(1);
+                        }
                     }
-                    free(vector);
+                    else {
+                        fprintf(stderr, "Error: Line %zu: Key '%s' not supported "
+                            "under 'camera'\n", line, key);
+                        exit(1);
+                    }
                 }
-                else if(strcmp(key, "radius")) {
-                    objs[objsSize - 1].radius = nextNumber(json, &line);
-                    if(objs[objsSize - 1].radius < 0) {
-                        fprintf(stderr, "Error: Line %zu: Radius cannot be "
-                            "negative\n", line);
+                else if(strcmp(objs[objsSize - 1].type, "sphere") == 0) {
+                    if(strcmp(key, "color") == 0) {
+                        vector = nextVector3d(json, &line);
+                        for(int i = 0; i < 3; i++) {
+                            if(vector[i] < 0 || vector[i] > 1) {
+                                fprintf(stderr, "Error: Line %zu: Color must be "
+                                    "between 0.0 and 1.0\n", line);
+                                exit(1);
+                            }
+                            objs[objsSize - 1].color[i] = vector[i];
+                        }
+                        free(vector);
+                    }
+                    else if(strcmp(key, "position") == 0) {
+                        vector = nextVector3d(json, &line);
+                        for(int i = 0; i < 3; i++) {
+                            objs[objsSize - 1].pos[i] = vector[i];
+                        }
+                        free(vector);
+                    }
+                    else if(strcmp(key, "radius") == 0) {
+                        objs[objsSize - 1].radius = nextNumber(json, &line);
+                        if(objs[objsSize - 1].radius < 0) {
+                            fprintf(stderr, "Error: Line %zu: Radius cannot be "
+                                "negative\n", line);
+                            exit(1);
+                        }
+                    }
+                    else {
+                        fprintf(stderr, "Error: Line %zu: Key '%s' not supported "
+                            "under 'sphere'\n", line, key);
+                        exit(1);
+                    }
+                }
+                else if(strcmp(objs[objsSize - 1].type, "plane") == 0) {
+                    if(strcmp(key, "color") == 0) {
+                        vector = nextVector3d(json, &line);
+                        for(int i = 0; i < 3; i++) {
+                            if(vector[i] < 0 || vector[i] > 1) {
+                                fprintf(stderr, "Error: Line %zu: Color must be "
+                                    "between 0.0 and 1.0\n", line);
+                                exit(1);
+                            }
+                            objs[objsSize - 1].color[i] = vector[i];
+                        }
+                        free(vector);
+                    }
+                    else if(strcmp(key, "position") == 0) {
+                        vector = nextVector3d(json, &line);
+                        for(int i = 0; i < 3; i++) {
+                            objs[objsSize - 1].pos[i] = vector[i];
+                        }
+                        free(vector);
+                    }
+                    else if(strcmp(key, "normal") == 0) {
+                        vector = nextVector3d(json, &line);
+                        for(int i = 0; i < 3; i++) {
+                            objs[objsSize - 1].normal[i] = vector[i];
+                        }
+                        free(vector);
+                    }
+                    else {
+                        fprintf(stderr, "Error: Line %zu: Key '%s' not supported "
+                            "under 'plane'\n", line, key);
                         exit(1);
                     }
                 }
                 else {
-                    fprintf(stderr, "Error: Line %zu: Key '%s' not supported "
-                        "under 'sphere'\n", line, key);
+                    fprintf(stderr, "Error: Line %zu: Unknown type %s", line,
+                        objs[objsSize - 1].type);
                     exit(1);
                 }
+
+                skipWhitespace(json, &line);
             }
-            else if(strcmp(objs[objsSize - 1].type, "plane") == 0) {
-                if(strcmp(key, "color")) {
-                    vector = nextVector3d(json, &line);
-                    for(int i = 0; i < 3; i++) {
-                        if(vector[i] < 0 || vector[i] > 1) {
-                            fprintf(stderr, "Error: Line %zu: Color must be "
-                                "between 0.0 and 1.0\n", line);
-                            exit(1);
-                        }
-                        objs[objsSize - 1].color[i] = vector[i];
-                    }
-                    free(vector);
-                }
-                else if(strcmp(key, "position")) {
-                    vector = nextVector3d(json, &line);
-                    for(int i = 0; i < 3; i++) {
-                        objs[objsSize - 1].pos[i] = vector[i];
-                    }
-                    free(vector);
-                }
-                else if(strcmp(key, "normal")) {
-                    vector = nextVector3d(json, &line);
-                    for(int i = 0; i < 3; i++) {
-                        objs[objsSize - 1].normal[i] = vector[i];
-                    }
-                    free(vector);
-                }
-                else {
-                    fprintf(stderr, "Error: Line %zu: Key '%s' not supported "
-                        "under 'plane'\n", line, key);
-                    exit(1);
-                }
-            }
-            else {
-                fprintf(stderr, "Error: Line %zu: Unknown type %s", line,
-                    objs[objsSize - 1].type);
-                exit(1);
-            }
+
+            tokenCheck(c, '}', line);
 
             skipWhitespace(json, &line);
         }
+        while((c = jsonGetC(json, &line)) == ',');
 
-        if(ungetc(c, json) == EOF) {
-            fprintf(stderr, "Error: Line %zu: Read error\n", line);
-            exit(1);
-        }
-
-        skipWhitespace(json, &line);
-        c = jsonGetC(json, &line);
-        tokenCheck(c, '}', line);
-
-        skipWhitespace(json, &line);
+        tokenCheck(c, ']', line);
     }
-    while((c = jsonGetC(json, &line)) == ',');
-
-    tokenCheck(c, ']', line);
 
     // Manually get trailing whitespace
     while((c = fgetc(json)) != EOF && isspace(c)) {
