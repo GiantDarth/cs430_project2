@@ -7,7 +7,7 @@
 #include <math.h>
 #include <errno.h>
 
-#include "scene.h"
+#include "json.h"
 
 void errorCheck(int c, FILE* json, size_t line);
 void tokenCheck(int c, char token, size_t line);
