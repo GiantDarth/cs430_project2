@@ -37,4 +37,8 @@ typedef struct ray {
     vector3d dir;
 } ray;
 
+double sphere_intersection(ray ray, sceneObj obj);
+double plane_intersection(ray ray, sceneObj obj);
+double cylinder_intersection(ray ray, sceneObj obj);
+
 #endif // CS430_SCENE_H
