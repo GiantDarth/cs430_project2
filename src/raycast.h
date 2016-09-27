@@ -6,6 +6,7 @@
 #include "scene.h"
 #include "image.h"
 
-void raycast(pixel* pixels, size_t width, size_t height, const sceneObj* objs);
+void raycast(pixel* pixels, size_t width, size_t height, camera camera,
+        const sceneObj* objs, size_t objsSize);
 
 #endif // CS430_RAYCAST_H
