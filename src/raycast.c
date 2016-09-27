@@ -7,11 +7,6 @@
 #include "raycast.h"
 #include "vector3d.h"
 
-typedef struct camera {
-    float width;
-    float height;
-} camera;
-
 typedef struct ray {
     vector3d origin;
     vector3d dir;
