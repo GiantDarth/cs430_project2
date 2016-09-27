@@ -7,11 +7,6 @@
 #include "raycast.h"
 #include "vector3d.h"
 
-typedef struct ray {
-    vector3d origin;
-    vector3d dir;
-} ray;
-
 const sceneObj* shoot(ray ray, const sceneObj* objs, size_t objsSize);
 pixel shade(sceneObj intersected);
 

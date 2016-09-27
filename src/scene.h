@@ -4,17 +4,37 @@
 #include "vector3d.h"
 #include "image.h"
 
+#define TYPE_SPHERE 0
+#define TYPE_PLANE 1
+
 typedef struct sceneObj {
-    char* type;
-    double radius;
-    vector3d pos;
+    int type;
     pixel color;
-    vector3d normal;
+    union {
+        struct {
+            vector3d pos;
+            double radius;
+        } sphere;
+        struct {
+            vector3d pos;
+            vector3d normal;
+        } plane;
+        struct {
+            vector3d pos;
+            double radius;
+            double height;
+        } cylinder;
+    };
 } sceneObj;
 
 typedef struct camera {
     float width;
     float height;
 } camera;
+
+typedef struct ray {
+    vector3d origin;
+    vector3d dir;
+} ray;
 
 #endif // CS430_SCENE_H

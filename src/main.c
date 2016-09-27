@@ -18,8 +18,10 @@ int main(int argc, char const *argv[]) {
     vector3d zeroVector = { 0, 0, 0 };
 
     for(size_t i = 0; i < jsonObj.objsSize; i++) {
-        if(vector3d_compare(jsonObj.objs[i].normal, zeroVector) != 0) {
-            vector3d_normalize(jsonObj.objs[i].normal);
+        if(jsonObj.objs[i].type == TYPE_PLANE) {
+            if(vector3d_compare(jsonObj.objs[i].plane.normal, zeroVector) != 0) {
+                jsonObj.objs[i].plane.norma = vector3d_normalize(jsonObj.objs[i].plane.normal);
+            }
         }
     }
 

@@ -39,8 +39,6 @@ jsonObj readScene(const char* path) {
     int c;
     size_t line = 1;
     char* key, *type;
-    vector3d zeroVector = { 0, 0, 0 };
-    pixel zeroColor = { 0, 0, 0 };
 
     // Ignore beginning whitespace
     skipWhitespace(json, &line);
@@ -105,15 +103,18 @@ jsonObj readScene(const char* path) {
                 exit(1);
             }
 
-            objs[objsSize - 1].type = type;
-            objs[objsSize - 1].normal = zeroVector;
-            objs[objsSize - 1].pos = zeroVector;
-            objs[objsSize - 1].radius = 0;
-            objs[objsSize - 1].color = zeroColor;
+            memset(&(objs[objsSize - 1]), 0, sizeof(objs[objsSize - 1]));
+
+            if(strcmp(type, "plane") == 0) {
+                objs[objsSize - 1].type = TYPE_PLANE;
+            }
+            else if(strcmp(type, "sphere") == 0) {
+                objs[objsSize - 1].type = TYPE_SPHERE;
+            }
         }
         else if(strcmp(type, "camera") != 0) {
             fprintf(stderr, "Error: Line %zu: Unknown type %s", line,
-                objs[objsSize - 1].type);
+                type);
             exit(1);
         }
 
@@ -158,11 +159,11 @@ jsonObj readScene(const char* path) {
                     objs[objsSize - 1].color = nextColor(json, &line);
                 }
                 else if(strcmp(key, "position") == 0) {
-                    objs[objsSize - 1].pos = nextVector3d(json, &line);
+                    objs[objsSize - 1].sphere.pos = nextVector3d(json, &line);
                 }
                 else if(strcmp(key, "radius") == 0) {
-                    objs[objsSize - 1].radius = nextNumber(json, &line);
-                    if(objs[objsSize - 1].radius < 0) {
+                    objs[objsSize - 1].sphere.radius = nextNumber(json, &line);
+                    if(objs[objsSize - 1].sphere.radius < 0) {
                         fprintf(stderr, "Error: Line %zu: Radius cannot be "
                             "negative\n", line);
                         exit(1);
@@ -179,10 +180,10 @@ jsonObj readScene(const char* path) {
                     objs[objsSize - 1].color = nextColor(json, &line);
                 }
                 else if(strcmp(key, "position") == 0) {
-                    objs[objsSize - 1].pos = nextVector3d(json, &line);
+                    objs[objsSize - 1].plane.pos = nextVector3d(json, &line);
                 }
                 else if(strcmp(key, "normal") == 0) {
-                    objs[objsSize - 1].normal = nextVector3d(json, &line);
+                    objs[objsSize - 1].plane.normal = nextVector3d(json, &line);
                 }
                 else {
                     fprintf(stderr, "Error: Line %zu: Key '%s' not supported "
