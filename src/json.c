@@ -18,18 +18,29 @@ void trailSpaceCheck(FILE* json, size_t* line);
 char* nextString(FILE* json, size_t* line);
 double nextNumber(FILE* json, size_t* line);
 vector3d nextVector3d(FILE* json, size_t* line);
+pixel nextColor(FILE* json, size_t* line);
 
-sceneObj* readScene(const char* path) {
+jsonObj readScene(const char* path) {
     FILE* json = fopen(path, "r");
     if(json == NULL) {
         perror("Error: Opening input\n");
         exit(1);
     }
-    size_t line = 1;
+
+    camera camera = { 0, 0 };
     sceneObj* objs = NULL;
     size_t objsSize = 0;
-    double* vector;
+
+    jsonObj jsonObj;
+    jsonObj.camera = camera;
+    jsonObj.objs = objs;
+    jsonObj.objsSize = objsSize;
+
     int c;
+    size_t line = 1;
+    char* key, *type;
+    vector3d zeroVector = { 0, 0, 0 };
+    pixel zeroColor = { 0, 0, 0 };
 
     // Ignore beginning whitespace
     skipWhitespace(json, &line);
@@ -44,7 +55,7 @@ sceneObj* readScene(const char* path) {
 
         trailSpaceCheck(json, &line);
 
-        return NULL;
+        return jsonObj;
     }
 
     if(ungetc(c, json) == EOF) {
@@ -72,13 +83,8 @@ sceneObj* readScene(const char* path) {
             exit(1);
         }
 
-        if((objs = realloc(objs, ++objsSize)) == NULL) {
-            fprintf(stderr, "Error: Line %zu: Memory reallocation error\n", line);
-            perror("");
-            exit(1);
-        }
+        key = nextString(json, &line);
 
-        char* key = nextString(json, &line);
         if(strcmp(key, "type") != 0) {
             fprintf(stderr, "Error: First key must be 'type'\n");
             exit(1);
@@ -89,7 +95,27 @@ sceneObj* readScene(const char* path) {
         tokenCheck(c, ':', line);
 
         skipWhitespace(json, &line);
-        objs[objsSize - 1].type = nextString(json, &line);
+        type = nextString(json, &line);
+
+        if(strcmp(type, "plane") == 0 || strcmp(type, "sphere") == 0) {
+            if((objs = realloc(objs, ++objsSize)) == NULL) {
+                fprintf(stderr, "Error: Line %zu: Memory reallocation error\n",
+                    line);
+                perror("");
+                exit(1);
+            }
+
+            objs[objsSize - 1].type = type;
+            objs[objsSize - 1].normal = zeroVector;
+            objs[objsSize - 1].pos = zeroVector;
+            objs[objsSize - 1].radius = 0;
+            objs[objsSize - 1].color = zeroColor;
+        }
+        else if(strcmp(type, "camera") != 0) {
+            fprintf(stderr, "Error: Line %zu: Unknown type %s", line,
+                objs[objsSize - 1].type);
+            exit(1);
+        }
 
         skipWhitespace(json, &line);
         while((c = jsonGetC(json, &line)) == ',') {
@@ -104,18 +130,18 @@ sceneObj* readScene(const char* path) {
 
             skipWhitespace(json, &line);
             // TODO: Find way to remove redundant code
-            if(strcmp(objs[objsSize - 1].type, "camera") == 0) {
+            if(strcmp(type, "camera") == 0) {
                 if(strcmp(key, "width") == 0) {
-                    objs[objsSize - 1].width = nextNumber(json, &line);
-                    if(objs[objsSize - 1].width < 0) {
+                    camera.width = nextNumber(json, &line);
+                    if(camera.width < 0) {
                         fprintf(stderr, "Error: Line %zu: Width cannot be negative\n",
                             line);
                         exit(1);
                     }
                 }
                 else if(strcmp(key, "height") == 0) {
-                    objs[objsSize - 1].height = nextNumber(json, &line);
-                    if(objs[objsSize - 1].height < 0) {
+                    camera.height = nextNumber(json, &line);
+                    if(camera.height < 0) {
                         fprintf(stderr, "Error: Line %zu: Height cannot be negative\n",
                             line);
                         exit(1);
@@ -127,16 +153,9 @@ sceneObj* readScene(const char* path) {
                     exit(1);
                 }
             }
-            else if(strcmp(objs[objsSize - 1].type, "sphere") == 0) {
+            else if(strcmp(type, "sphere") == 0) {
                 if(strcmp(key, "color") == 0) {
                     objs[objsSize - 1].color = nextColor(json, &line);
-                    for(int i = 0; i < 3; i++) {
-                        if([i] < 0 || objs[objsSize - 1].color[i] > 1) {
-                            fprintf(stderr, "Error: Line %zu: Color must be "
-                                "between 0.0 and 1.0\n", line);
-                            exit(1);
-                        }
-                    }
                 }
                 else if(strcmp(key, "position") == 0) {
                     objs[objsSize - 1].pos = nextVector3d(json, &line);
@@ -155,18 +174,9 @@ sceneObj* readScene(const char* path) {
                     exit(1);
                 }
             }
-            else if(strcmp(objs[objsSize - 1].type, "plane") == 0) {
+            else if(strcmp(type, "plane") == 0) {
                 if(strcmp(key, "color") == 0) {
                     objs[objsSize - 1].color = nextColor(json, &line);
-                    for(int i = 0; i < 3; i++) {
-                        if(vector[i] < 0 || vector[i] > 1) {
-                            fprintf(stderr, "Error: Line %zu: Color must be "
-                                "between 0.0 and 1.0\n", line);
-                            exit(1);
-                        }
-                        [i] = vector[i];
-                    }
-                    free(vector);
                 }
                 else if(strcmp(key, "position") == 0) {
                     objs[objsSize - 1].pos = nextVector3d(json, &line);
@@ -179,11 +189,6 @@ sceneObj* readScene(const char* path) {
                         "under 'plane'\n", line, key);
                     exit(1);
                 }
-            }
-            else {
-                fprintf(stderr, "Error: Line %zu: Unknown type %s", line,
-                    objs[objsSize - 1].type);
-                exit(1);
             }
 
             skipWhitespace(json, &line);
@@ -199,7 +204,11 @@ sceneObj* readScene(const char* path) {
 
     trailSpaceCheck(json, &line);
 
-    return objs;
+    jsonObj.camera = camera;
+    jsonObj.objs = objs;
+    jsonObj.objsSize = objsSize;
+
+    return jsonObj;
 }
 
 void errorCheck(int c, FILE* fp, size_t line) {
@@ -338,8 +347,7 @@ double nextNumber(FILE* json, size_t* line) {
 }
 
 vector3d nextVector3d(FILE* json, size_t* line) {
-    const size_t SIZE = 3;
-    vectord3d vector;
+    vector3d vector;
 
     int c = jsonGetC(json, line);
     tokenCheck(c, '[', *line);
@@ -369,28 +377,47 @@ vector3d nextVector3d(FILE* json, size_t* line) {
 }
 
 pixel nextColor(FILE* json, size_t* line) {
-    const size_t SIZE = 3;
+    double color;
     pixel pixel;
 
     int c = jsonGetC(json, line);
     tokenCheck(c, '[', *line);
 
     skipWhitespace(json, line);
-    pixel.red = nextNumber(json, line);
+    color = nextNumber(json, line);
+    if(color < 0 || color > 1.0) {
+        fprintf(stderr, "Error: Line %zu: Color must be between 0.0 and 1.0\n",
+            *line);
+        exit(1);
+    }
+    pixel.red = color * 255;
 
     skipWhitespace(json, line);
     c = jsonGetC(json, line);
     tokenCheck(c, ',', *line);
 
     skipWhitespace(json, line);
-    pixel.green = nextNumber(json, line);
+    color = nextNumber(json, line);
+    if(color < 0 || color > 1.0) {
+        fprintf(stderr, "Error: Line %zu: Color must be between 0.0 and 1.0\n",
+            *line);
+        exit(1);
+    }
+    pixel.green = color * 255;
+
 
     skipWhitespace(json, line);
     c = jsonGetC(json, line);
     tokenCheck(c, ',', *line);
 
     skipWhitespace(json, line);
-    pixel.blue = nextNumber(json, line);
+    color = nextNumber(json, line);
+    if(color < 0 || color > 1.0) {
+        fprintf(stderr, "Error: Line %zu: Color must be between 0.0 and 1.0\n",
+            *line);
+        exit(1);
+    }
+    pixel.blue = color * 255;
 
     skipWhitespace(json, line);
     c = jsonGetC(json, line);

@@ -9,12 +9,11 @@ int main(int argc, char const *argv[]) {
             "/path/to/output.ppm\n");
         return 1;
     }
-    sceneObj* objs = readScene(argv[3]);
-    if(objs == NULL) {
+    jsonObj jsonObj = readScene(argv[3]);
+    if(jsonObj.objsSize == 0) {
         return 0;
     }
 
-    sceneObj
 
     return 0;
 }
