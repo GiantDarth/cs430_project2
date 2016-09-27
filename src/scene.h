@@ -1,14 +1,17 @@
 #ifndef CS430_SCENE_H
 #define CS430_SCENE_H
 
+#include "vector3d.h"
+#include "image.h"
+
 typedef struct sceneObj {
     char* type;
-    float width;
-    float height;
-    float radius;
-    float pos[3];
-    float color[3];
-    float normal[3];
+    double width;
+    double height;
+    double radius;
+    vector3d pos;
+    pixel color;
+    vector3d normal;
 } sceneObj;
 
 #endif // CS430_SCENE_H

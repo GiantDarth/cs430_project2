@@ -7,6 +7,7 @@
 #include <math.h>
 #include <errno.h>
 
+#include "vector3d.h"
 #include "json.h"
 
 void errorCheck(int c, FILE* json, size_t line);
@@ -16,7 +17,7 @@ void skipWhitespace(FILE* json, size_t* line);
 void trailSpaceCheck(FILE* json, size_t* line);
 char* nextString(FILE* json, size_t* line);
 double nextNumber(FILE* json, size_t* line);
-double* nextVector3d(FILE* json, size_t* line);
+vector3d nextVector3d(FILE* json, size_t* line);
 
 sceneObj* readScene(const char* path) {
     FILE* json = fopen(path, "r");
@@ -45,7 +46,7 @@ sceneObj* readScene(const char* path) {
 
         return NULL;
     }
-    
+
     if(ungetc(c, json) == EOF) {
         fprintf(stderr, "Error: Line %zu: Read error\n", line);
         perror("");
@@ -128,23 +129,17 @@ sceneObj* readScene(const char* path) {
             }
             else if(strcmp(objs[objsSize - 1].type, "sphere") == 0) {
                 if(strcmp(key, "color") == 0) {
-                    vector = nextVector3d(json, &line);
+                    objs[objsSize - 1].color = nextColor(json, &line);
                     for(int i = 0; i < 3; i++) {
-                        if(vector[i] < 0 || vector[i] > 1) {
+                        if([i] < 0 || objs[objsSize - 1].color[i] > 1) {
                             fprintf(stderr, "Error: Line %zu: Color must be "
                                 "between 0.0 and 1.0\n", line);
                             exit(1);
                         }
-                        objs[objsSize - 1].color[i] = vector[i];
                     }
-                    free(vector);
                 }
                 else if(strcmp(key, "position") == 0) {
-                    vector = nextVector3d(json, &line);
-                    for(int i = 0; i < 3; i++) {
-                        objs[objsSize - 1].pos[i] = vector[i];
-                    }
-                    free(vector);
+                    objs[objsSize - 1].pos = nextVector3d(json, &line);
                 }
                 else if(strcmp(key, "radius") == 0) {
                     objs[objsSize - 1].radius = nextNumber(json, &line);
@@ -162,30 +157,22 @@ sceneObj* readScene(const char* path) {
             }
             else if(strcmp(objs[objsSize - 1].type, "plane") == 0) {
                 if(strcmp(key, "color") == 0) {
-                    vector = nextVector3d(json, &line);
+                    objs[objsSize - 1].color = nextColor(json, &line);
                     for(int i = 0; i < 3; i++) {
                         if(vector[i] < 0 || vector[i] > 1) {
                             fprintf(stderr, "Error: Line %zu: Color must be "
                                 "between 0.0 and 1.0\n", line);
                             exit(1);
                         }
-                        objs[objsSize - 1].color[i] = vector[i];
+                        [i] = vector[i];
                     }
                     free(vector);
                 }
                 else if(strcmp(key, "position") == 0) {
-                    vector = nextVector3d(json, &line);
-                    for(int i = 0; i < 3; i++) {
-                        objs[objsSize - 1].pos[i] = vector[i];
-                    }
-                    free(vector);
+                    objs[objsSize - 1].pos = nextVector3d(json, &line);
                 }
                 else if(strcmp(key, "normal") == 0) {
-                    vector = nextVector3d(json, &line);
-                    for(int i = 0; i < 3; i++) {
-                        objs[objsSize - 1].normal[i] = vector[i];
-                    }
-                    free(vector);
+                    objs[objsSize - 1].normal = nextVector3d(json, &line);
                 }
                 else {
                     fprintf(stderr, "Error: Line %zu: Key '%s' not supported "
@@ -350,31 +337,64 @@ double nextNumber(FILE* json, size_t* line) {
     return value;
 }
 
-double* nextVector3d(FILE* json, size_t* line) {
+vector3d nextVector3d(FILE* json, size_t* line) {
     const size_t SIZE = 3;
-    double* vector = malloc(SIZE * sizeof(*vector));
-    if(vector == NULL) {
-        fprintf(stderr, "Error: Line %zu: Memory allocation error\n", *line);
-        perror("");
-        exit(1);
-    }
+    vectord3d vector;
+
     int c = jsonGetC(json, line);
     tokenCheck(c, '[', *line);
 
-    for(size_t i = 0; i < SIZE; i++) {
-        skipWhitespace(json, line);
-        vector[i] = nextNumber(json, line);
+    skipWhitespace(json, line);
+    vector.x = nextNumber(json, line);
 
-        if(i < SIZE - 1) {
-            skipWhitespace(json, line);
-            c = jsonGetC(json, line);
-            tokenCheck(c, ',', *line);
-        }
-    }
+    skipWhitespace(json, line);
+    c = jsonGetC(json, line);
+    tokenCheck(c, ',', *line);
+
+    skipWhitespace(json, line);
+    vector.y = nextNumber(json, line);
+
+    skipWhitespace(json, line);
+    c = jsonGetC(json, line);
+    tokenCheck(c, ',', *line);
+
+    skipWhitespace(json, line);
+    vector.z = nextNumber(json, line);
 
     skipWhitespace(json, line);
     c = jsonGetC(json, line);
     tokenCheck(c, ']', *line);
 
     return vector;
+}
+
+pixel nextColor(FILE* json, size_t* line) {
+    const size_t SIZE = 3;
+    pixel pixel;
+
+    int c = jsonGetC(json, line);
+    tokenCheck(c, '[', *line);
+
+    skipWhitespace(json, line);
+    pixel.red = nextNumber(json, line);
+
+    skipWhitespace(json, line);
+    c = jsonGetC(json, line);
+    tokenCheck(c, ',', *line);
+
+    skipWhitespace(json, line);
+    pixel.green = nextNumber(json, line);
+
+    skipWhitespace(json, line);
+    c = jsonGetC(json, line);
+    tokenCheck(c, ',', *line);
+
+    skipWhitespace(json, line);
+    pixel.blue = nextNumber(json, line);
+
+    skipWhitespace(json, line);
+    c = jsonGetC(json, line);
+    tokenCheck(c, ']', *line);
+
+    return pixel;
 }
