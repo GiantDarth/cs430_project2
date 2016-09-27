@@ -2,6 +2,7 @@
 
 double sphere_intersection(ray ray, sceneObj obj) {
     double denominator = vector3d_dot(obj.plane.normal, ray.dir);
+    // If the denominator is 0, then ray is parallel to plane
     if(denominator == 0) {
         return -1;
     }
