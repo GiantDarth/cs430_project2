@@ -27,14 +27,11 @@ jsonObj readScene(const char* path) {
         exit(1);
     }
 
-    camera camera = { 0, 0 };
+    camera camera = { 0 };
     sceneObj* objs = NULL;
     size_t objsSize = 0;
 
-    jsonObj jsonObj;
-    jsonObj.camera = camera;
-    jsonObj.objs = objs;
-    jsonObj.objsSize = objsSize;
+    jsonObj jsonObj = { 0 };
 
     int c;
     size_t line = 1;
