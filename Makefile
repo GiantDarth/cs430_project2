@@ -17,4 +17,6 @@ $(OBJ): src/%.o : src/%.c
 
 clean:
 	find . -type f -name '*.o' -exec rm {} \;
+	find . -type f -name '*.h.gch' -exec rm {} \;
+	find . -type f -name '*.stackdump' -exec rm {} \;
 	rm -rf out
