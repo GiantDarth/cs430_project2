@@ -46,10 +46,10 @@ const sceneObj* shoot(ray ray, const sceneObj* objs, size_t objsSize) {
     for(size_t i = 0; i < objsSize; i++) {
         switch(objs[i].type) {
             case(TYPE_SPHERE):
-                t = sphere_intersection(ray, obj);
+                t = sphere_intersection(ray, objs[i]);
                 break;
             case(TYPE_PLANE):
-                t = plane_intersection(ray, obj);
+                t = plane_intersection(ray, objs[i]);
                 break;
             default:
                 fprintf(stderr, "Error: Invalid obj type\n");
