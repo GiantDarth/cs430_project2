@@ -1,6 +1,6 @@
 #include "scene.h"
 
-double sphere_intersection(ray ray, sceneObj obj) {
+double plane_intersection(ray ray, sceneObj obj) {
     double denominator = vector3d_dot(obj.plane.normal, ray.dir);
     // If the denominator is 0, then ray is parallel to plane
     if(denominator == 0) {
@@ -16,7 +16,12 @@ double sphere_intersection(ray ray, sceneObj obj) {
     return -1;
 }
 
-double plane_intersection(ray ray, sceneObj obj) {
+double sphere_intersection(ray ray, sceneObj obj) {
+    // t_close = Rd * (C - Ro) closest apprach along ray
+    // x_close = Ro + t_close*Rd closest point from circle center
+    // d = ||x_close - C|| distance from circle center
+    // a = sqrt(rad^2 - d^2)
+    // t = t_close - a
     double t = vector3d_dot(ray.dir, vector3d_sub(obj.sphere.pos, ray.origin));
     vector3d point = vector3d_add(ray.origin, vector3d_scale(ray.dir, t));
     double magnitude = vector3d_magnitude(vector3d_sub(point, obj.sphere.pos));
