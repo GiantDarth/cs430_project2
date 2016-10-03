@@ -93,7 +93,7 @@ jsonObj readScene(const char* path) {
         type = nextString(json, &line);
 
         if(strcmp(type, "plane") == 0 || strcmp(type, "sphere") == 0) {
-            if((objs = realloc(objs, ++objsSize)) == NULL) {
+            if((objs = realloc(objs, ++objsSize * sizeof(*objs))) == NULL) {
                 fprintf(stderr, "Error: Line %zu: Memory reallocation error\n",
                     line);
                 perror("");
