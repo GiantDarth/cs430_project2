@@ -1,5 +1,8 @@
 out/
 *.stackdump
+*.bmp
+*.jpg
+*.png
 
 # Object files
 *.o
