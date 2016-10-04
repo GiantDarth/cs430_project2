@@ -4,7 +4,6 @@
 #include <stdio.h>
 
 #include "pnm.h"
-#include "image.h"
 
 int writeHeader(pnmHeader header, FILE* outputFd);
 int writeBody(pnmHeader header, pixel* pixels, FILE* outputFd);

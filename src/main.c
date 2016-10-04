@@ -2,7 +2,6 @@
 #include <stdlib.h>
 
 #include "json.h"
-#include "scene.h"
 #include "raycast.h"
 #include "pnm.h"
 #include "write.h"

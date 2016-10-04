@@ -19,4 +19,10 @@ typedef struct pnmHeader {
     size_t maxColorSize;
 } pnmHeader;
 
+typedef struct pixel {
+    unsigned char red;
+    unsigned char green;
+    unsigned char blue;
+} pixel;
+
 #endif // CS430_PNM_H

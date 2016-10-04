@@ -3,8 +3,8 @@
 
 #include <stddef.h>
 
+#include "pnm.h"
 #include "raycast.h"
-#include "scene.h"
 
 typedef struct jsonObj {
     camera camera;
