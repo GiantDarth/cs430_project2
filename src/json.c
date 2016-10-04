@@ -256,7 +256,6 @@ void skipWhitespace(FILE* json, size_t* line) {
     }
 }
 
-
 void trailSpaceCheck(FILE* json, size_t* line) {
     int c;
 
@@ -277,7 +276,6 @@ void trailSpaceCheck(FILE* json, size_t* line) {
         exit(1);
     }
 }
-
 
 char* nextString(FILE* json, size_t* line) {
     size_t bufferSize = 64;
