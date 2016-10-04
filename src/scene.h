@@ -2,10 +2,15 @@
 #define CS430_SCENE_H
 
 #include "vector3d.h"
-#include "image.h"
 
 #define TYPE_SPHERE 0
 #define TYPE_PLANE 1
+
+typedef struct pixel {
+    unsigned char red;
+    unsigned char green;
+    unsigned char blue;
+} pixel;
 
 typedef struct sceneObj {
     int type;
