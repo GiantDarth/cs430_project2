@@ -3,6 +3,8 @@ out/
 *.bmp
 *.jpg
 *.png
+*.ppm
+!examples/example.ppm
 
 # Object files
 *.o
