@@ -19,7 +19,7 @@ static inline vector3d vector3d_sub(vector3d first, vector3d second) {
     return result;
 }
 
-static inline vector3d vector3d_scale(vector3d vector, float scaler) {
+static inline vector3d vector3d_scale(vector3d vector, double scaler) {
     vector3d result = { vector.x * scaler, vector.y * scaler, vector.z * scaler };
     return result;
 }
