@@ -10,6 +10,17 @@
 #include "vector3d.h"
 #include "json.h"
 
+#define CAMERA_WIDTH_FLAG 0x1
+#define CAMERA_HEIGHT_FLAG 0x2
+
+#define SPHERE_COLOR_FLAG 0x1
+#define SPHERE_POS_FLAG 0x2
+#define SPHERE_RAD_FLAG 0x4
+
+#define PLANE_COLOR_FLAG 0x1
+#define PLANE_POS_FLAG 0x2
+#define PLANE_NORMAL_FLAG 0x4
+
 void errorCheck(int c, FILE* json, size_t line);
 void tokenCheck(int c, char token, size_t line);
 int jsonGetC(FILE* json, size_t* line);
@@ -36,6 +47,7 @@ jsonObj readScene(const char* path) {
     int c;
     size_t line = 1;
     char* key, *type;
+    int keyFlag;
 
     // Ignore beginning whitespace
     skipWhitespace(json, &line);
@@ -115,6 +127,8 @@ jsonObj readScene(const char* path) {
             exit(1);
         }
 
+        keyFlag = 0;
+
         skipWhitespace(json, &line);
         while((c = jsonGetC(json, &line)) == ',') {
             skipWhitespace(json, &line);
@@ -136,6 +150,7 @@ jsonObj readScene(const char* path) {
                             line);
                         exit(1);
                     }
+                    keyFlag |= CAMERA_WIDTH_FLAG;
                 }
                 else if(strcmp(key, "height") == 0) {
                     camera.height = nextNumber(json, &line);
@@ -144,6 +159,7 @@ jsonObj readScene(const char* path) {
                             line);
                         exit(1);
                     }
+                    keyFlag |= CAMERA_HEIGHT_FLAG;
                 }
                 else {
                     fprintf(stderr, "Error: Line %zu: Key '%s' not supported "
@@ -154,9 +170,11 @@ jsonObj readScene(const char* path) {
             else if(strcmp(type, "sphere") == 0) {
                 if(strcmp(key, "color") == 0) {
                     objs[objsSize - 1].color = nextColor(json, &line);
+                    keyFlag |= SPHERE_COLOR_FLAG;
                 }
                 else if(strcmp(key, "position") == 0) {
                     objs[objsSize - 1].sphere.pos = nextVector3d(json, &line);
+                    keyFlag |= SPHERE_POS_FLAG;
                 }
                 else if(strcmp(key, "radius") == 0) {
                     objs[objsSize - 1].sphere.radius = nextNumber(json, &line);
@@ -165,6 +183,7 @@ jsonObj readScene(const char* path) {
                             "negative\n", line);
                         exit(1);
                     }
+                    keyFlag |= SPHERE_RAD_FLAG;
                 }
                 else {
                     fprintf(stderr, "Error: Line %zu: Key '%s' not supported "
@@ -175,12 +194,15 @@ jsonObj readScene(const char* path) {
             else if(strcmp(type, "plane") == 0) {
                 if(strcmp(key, "color") == 0) {
                     objs[objsSize - 1].color = nextColor(json, &line);
+                    keyFlag |= PLANE_COLOR_FLAG;
                 }
                 else if(strcmp(key, "position") == 0) {
                     objs[objsSize - 1].plane.pos = nextVector3d(json, &line);
+                    keyFlag |= PLANE_POS_FLAG;
                 }
                 else if(strcmp(key, "normal") == 0) {
                     objs[objsSize - 1].plane.normal = nextVector3d(json, &line);
+                    keyFlag |= PLANE_NORMAL_FLAG;
                 }
                 else {
                     fprintf(stderr, "Error: Line %zu: Key '%s' not supported "
@@ -190,6 +212,54 @@ jsonObj readScene(const char* path) {
             }
 
             skipWhitespace(json, &line);
+        }
+
+        if(strcmp(type, "camera") == 0) {
+            if(!(keyFlag & CAMERA_WIDTH_FLAG)) {
+                fprintf(stderr, "Error: Line %zu: 'camera' missing 'width' "
+                    "property missing\n", line);
+                exit(EXIT_FAILURE);
+            }
+            if(!(keyFlag & CAMERA_HEIGHT_FLAG)) {
+                fprintf(stderr, "Error: Line %zu: 'camera' missing 'height' "
+                    "property missing\n", line);
+                exit(EXIT_FAILURE);
+            }
+        }
+        else if(strcmp(type, "sphere") == 0) {
+            if(!(keyFlag & SPHERE_COLOR_FLAG)) {
+                fprintf(stderr, "Error: Line %zu: 'sphere' missing 'color' "
+                    "property missing\n", line);
+                exit(EXIT_FAILURE);
+            }
+            if(!(keyFlag & SPHERE_RAD_FLAG)) {
+                fprintf(stderr, "Error: Line %zu: 'sphere' missing 'radius' "
+                    "property missing\n", line);
+
+                exit(EXIT_FAILURE);
+            }
+            if(!(keyFlag & SPHERE_POS_FLAG)) {
+                fprintf(stderr, "Error: Line %zu: 'sphere' missing 'position' "
+                    "property missing\n", line);
+                exit(EXIT_FAILURE);
+            }
+        }
+        else if(strcmp(type, "plane") == 0) {
+            if(!(keyFlag & PLANE_COLOR_FLAG)) {
+                fprintf(stderr, "Error: Line %zu: 'plane' missing 'color' "
+                    "property missing\n", line);
+                exit(EXIT_FAILURE);
+            }
+            if(!(keyFlag & PLANE_POS_FLAG)) {
+                fprintf(stderr, "Error: Line %zu: 'plane' missing 'position' "
+                    "property missing\n", line);
+                exit(EXIT_FAILURE);
+            }
+            if(!(keyFlag & PLANE_NORMAL_FLAG)) {
+                fprintf(stderr, "Error: Line %zu: 'plane' missing 'normal' "
+                    "property missing\n", line);
+                exit(EXIT_FAILURE);
+            }
         }
 
         tokenCheck(c, '}', line);
