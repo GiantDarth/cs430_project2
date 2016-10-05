@@ -1,5 +1,5 @@
-# ppmrw
-### CS430 - Project 1 (Images)
+# raycast
+### CS430 - Project 2 (Basic Raycaster)
 **Christopher Robert Philabaum**
 
 **Northern Arizona University (Fall 2016)**
