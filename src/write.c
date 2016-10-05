@@ -26,7 +26,7 @@ int writeHeader(pnmHeader header, FILE* outputFd) {
 
     fprintf(outputFd, "P%d\n", header.mode);
 
-    fprintf(outputFd, "# Created with ppmrw (Christopher Philabaum <cp723@nau.edu>)\n");
+    fprintf(outputFd, "# Created with raycast (Christopher Philabaum <cp723@nau.edu>)\n");
 
     fprintf(outputFd, "%zu %zu\n", header.width, header.height);
     // If not P1 or P4, then write maxColorSize
