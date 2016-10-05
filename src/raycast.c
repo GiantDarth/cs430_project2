@@ -14,7 +14,7 @@ pixel shade(sceneObj intersected);
 
 void raycast(pixel* pixels, size_t width, size_t height, camera camera,
         const sceneObj* objs, size_t objsSize) {
-    const vector3d center = { 0, 0, 0 };
+    const vector3d center = { 0, 0, 1 };
     const double PIXEL_WIDTH = camera.width / width;
     const double PIXEL_HEIGHT = camera.height / height;
 
@@ -22,7 +22,7 @@ void raycast(pixel* pixels, size_t width, size_t height, camera camera,
     const sceneObj* intersected;
     // Initialize ray as origin and dir of { 0, 0, 0 }
     ray ray = { 0 };
-    point.z = 1;
+    point.z = center.z;
 
     // Initialize all pixels to black
     memset(pixels, 0, sizeof(*pixels) * width * height);
