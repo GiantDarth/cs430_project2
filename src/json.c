@@ -144,22 +144,34 @@ jsonObj readScene(const char* path) {
             // TODO: Find way to remove redundant code
             if(strcmp(type, "camera") == 0) {
                 if(strcmp(key, "width") == 0) {
+                    if(keyFlag & CAMERA_WIDTH_FLAG) {
+                        fprintf(stderr, "Error: Line %zu: 'width' already defined\n",
+                            line);
+                        exit(EXIT_FAILURE);
+                    }
+                    keyFlag |= CAMERA_WIDTH_FLAG;
+
                     camera.width = nextNumber(json, &line);
                     if(camera.width < 0) {
                         fprintf(stderr, "Error: Line %zu: Width cannot be negative\n",
                             line);
                         exit(1);
                     }
-                    keyFlag |= CAMERA_WIDTH_FLAG;
                 }
                 else if(strcmp(key, "height") == 0) {
+                    if(keyFlag & CAMERA_HEIGHT_FLAG) {
+                        fprintf(stderr, "Error: Line %zu: 'height' already defined\n",
+                            line);
+                        exit(EXIT_FAILURE);
+                    }
+                    keyFlag |= CAMERA_HEIGHT_FLAG;
+
                     camera.height = nextNumber(json, &line);
                     if(camera.height < 0) {
                         fprintf(stderr, "Error: Line %zu: Height cannot be negative\n",
                             line);
                         exit(1);
                     }
-                    keyFlag |= CAMERA_HEIGHT_FLAG;
                 }
                 else {
                     fprintf(stderr, "Error: Line %zu: Key '%s' not supported "
@@ -169,14 +181,32 @@ jsonObj readScene(const char* path) {
             }
             else if(strcmp(type, "sphere") == 0) {
                 if(strcmp(key, "color") == 0) {
-                    objs[objsSize - 1].color = nextColor(json, &line);
+                    if(keyFlag & SPHERE_COLOR_FLAG) {
+                        fprintf(stderr, "Error: Line %zu: 'color' already defined\n",
+                            line);
+                        exit(EXIT_FAILURE);
+                    }
                     keyFlag |= SPHERE_COLOR_FLAG;
+
+                    objs[objsSize - 1].color = nextColor(json, &line);
                 }
                 else if(strcmp(key, "position") == 0) {
-                    objs[objsSize - 1].sphere.pos = nextVector3d(json, &line);
+                    if(keyFlag & SPHERE_POS_FLAG) {
+                        fprintf(stderr, "Error: Line %zu: 'position' already defined\n",
+                            line);
+                        exit(EXIT_FAILURE);
+                    }
                     keyFlag |= SPHERE_POS_FLAG;
+
+                    objs[objsSize - 1].sphere.pos = nextVector3d(json, &line);
                 }
                 else if(strcmp(key, "radius") == 0) {
+                    if(keyFlag & SPHERE_RAD_FLAG) {
+                        fprintf(stderr, "Error: Line %zu: 'radius' already defined\n",
+                            line);
+                        exit(EXIT_FAILURE);
+                    }
+
                     objs[objsSize - 1].sphere.radius = nextNumber(json, &line);
                     if(objs[objsSize - 1].sphere.radius < 0) {
                         fprintf(stderr, "Error: Line %zu: Radius cannot be "
@@ -193,16 +223,34 @@ jsonObj readScene(const char* path) {
             }
             else if(strcmp(type, "plane") == 0) {
                 if(strcmp(key, "color") == 0) {
-                    objs[objsSize - 1].color = nextColor(json, &line);
+                    if(keyFlag & PLANE_COLOR_FLAG) {
+                        fprintf(stderr, "Error: Line %zu: 'color' already defined\n",
+                            line);
+                        exit(EXIT_FAILURE);
+                    }
                     keyFlag |= PLANE_COLOR_FLAG;
+
+                    objs[objsSize - 1].color = nextColor(json, &line);
                 }
                 else if(strcmp(key, "position") == 0) {
-                    objs[objsSize - 1].plane.pos = nextVector3d(json, &line);
+                    if(keyFlag & PLANE_POS_FLAG) {
+                        fprintf(stderr, "Error: Line %zu: 'position' already defined\n",
+                            line);
+                        exit(EXIT_FAILURE);
+                    }
                     keyFlag |= PLANE_POS_FLAG;
+
+                    objs[objsSize - 1].plane.pos = nextVector3d(json, &line);
                 }
                 else if(strcmp(key, "normal") == 0) {
-                    objs[objsSize - 1].plane.normal = nextVector3d(json, &line);
+                    if(keyFlag & PLANE_NORMAL_FLAG) {
+                        fprintf(stderr, "Error: Line %zu: 'normal' already defined\n",
+                            line);
+                        exit(EXIT_FAILURE);
+                    }
                     keyFlag |= PLANE_NORMAL_FLAG;
+
+                    objs[objsSize - 1].plane.normal = nextVector3d(json, &line);
                 }
                 else {
                     fprintf(stderr, "Error: Line %zu: Key '%s' not supported "
