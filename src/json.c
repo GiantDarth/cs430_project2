@@ -35,7 +35,7 @@ jsonObj readScene(const char* path) {
     FILE* json = fopen(path, "r");
     if(json == NULL) {
         perror("Error: Opening input\n");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     camera camera = { 0 };
@@ -68,7 +68,7 @@ jsonObj readScene(const char* path) {
     if(ungetc(c, json) == EOF) {
         fprintf(stderr, "Error: Line %zu: Read error\n", line);
         perror("");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     do {
@@ -87,14 +87,14 @@ jsonObj readScene(const char* path) {
         else if(ungetc(c, json) == EOF) {
             fprintf(stderr, "Error: Line %zu: Read error\n", line);
             perror("");
-            exit(1);
+            exit(EXIT_FAILURE);
         }
 
         key = nextString(json, &line);
 
         if(strcmp(key, "type") != 0) {
             fprintf(stderr, "Error: First key must be 'type'\n");
-            exit(1);
+            exit(EXIT_FAILURE);
         }
 
         skipWhitespace(json, &line);
@@ -109,7 +109,7 @@ jsonObj readScene(const char* path) {
                 fprintf(stderr, "Error: Line %zu: Memory reallocation error\n",
                     line);
                 perror("");
-                exit(1);
+                exit(EXIT_FAILURE);
             }
 
             memset(&(objs[objsSize - 1]), 0, sizeof(objs[objsSize - 1]));
@@ -124,7 +124,7 @@ jsonObj readScene(const char* path) {
         else if(strcmp(type, "camera") != 0) {
             fprintf(stderr, "Error: Line %zu: Unknown type %s", line,
                 type);
-            exit(1);
+            exit(EXIT_FAILURE);
         }
 
         keyFlag = 0;
@@ -155,7 +155,7 @@ jsonObj readScene(const char* path) {
                     if(camera.width < 0) {
                         fprintf(stderr, "Error: Line %zu: Width cannot be negative\n",
                             line);
-                        exit(1);
+                        exit(EXIT_FAILURE);
                     }
                 }
                 else if(strcmp(key, "height") == 0) {
@@ -170,13 +170,13 @@ jsonObj readScene(const char* path) {
                     if(camera.height < 0) {
                         fprintf(stderr, "Error: Line %zu: Height cannot be negative\n",
                             line);
-                        exit(1);
+                        exit(EXIT_FAILURE);
                     }
                 }
                 else {
                     fprintf(stderr, "Error: Line %zu: Key '%s' not supported "
                         "under 'camera'\n", line, key);
-                    exit(1);
+                    exit(EXIT_FAILURE);
                 }
             }
             else if(strcmp(type, "sphere") == 0) {
@@ -211,14 +211,14 @@ jsonObj readScene(const char* path) {
                     if(objs[objsSize - 1].sphere.radius < 0) {
                         fprintf(stderr, "Error: Line %zu: Radius cannot be "
                             "negative\n", line);
-                        exit(1);
+                        exit(EXIT_FAILURE);
                     }
                     keyFlag |= SPHERE_RAD_FLAG;
                 }
                 else {
                     fprintf(stderr, "Error: Line %zu: Key '%s' not supported "
                         "under 'sphere'\n", line, key);
-                    exit(1);
+                    exit(EXIT_FAILURE);
                 }
             }
             else if(strcmp(type, "plane") == 0) {
@@ -255,7 +255,7 @@ jsonObj readScene(const char* path) {
                 else {
                     fprintf(stderr, "Error: Line %zu: Key '%s' not supported "
                         "under 'plane'\n", line, key);
-                    exit(1);
+                    exit(EXIT_FAILURE);
                 }
             }
 
@@ -331,12 +331,12 @@ void errorCheck(int c, FILE* fp, size_t line) {
     if(c == EOF) {
         if(feof(fp)) {
             fprintf(stderr, "Error: Line %zu: Premature end-of-file\n", line);
-            exit(1);
+            exit(EXIT_FAILURE);
         }
         else if(ferror(fp)) {
             fprintf(stderr, "Error: Line %zu: Read error\n", line);
             perror("");
-            exit(1);
+            exit(EXIT_FAILURE);
         }
     }
 }
@@ -344,7 +344,7 @@ void errorCheck(int c, FILE* fp, size_t line) {
 void tokenCheck(int c, char token, size_t line) {
     if(c != token) {
         fprintf(stderr, "Error: Line %zu: Expected '%c'\n", line, token);
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -370,7 +370,7 @@ void skipWhitespace(FILE* json, size_t* line) {
     if(ungetc(c, json) == EOF) {
         fprintf(stderr, "Error: Line %zu: Read error\n", *line);
         perror("");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -386,12 +386,12 @@ void trailSpaceCheck(FILE* json, size_t* line) {
 
     if(c != EOF) {
         fprintf(stderr, "Error: Line %zu: Unkown token at end-of-file\n", *line);
-        exit(1);
+        exit(EXIT_FAILURE);
     }
     else if(!feof(json) && ferror(json)) {
         fprintf(stderr, "Error: Line %zu: Read error\n", *line);
         perror("");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -402,7 +402,7 @@ char* nextString(FILE* json, size_t* line) {
     if(buffer == NULL) {
         fprintf(stderr, "Error: Line %zu: Memory allocation error\n", *line);
         perror("");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
     int c;
     size_t i;
@@ -418,7 +418,7 @@ char* nextString(FILE* json, size_t* line) {
             if(oldSize != 0 && bufferSize / oldSize != 2) {
                 fprintf(stderr, "Error: Line %zu: Integer overflow on size\n",
                     *line);
-                exit(1);
+                exit(EXIT_FAILURE);
             }
 
             oldSize = bufferSize;
@@ -427,7 +427,7 @@ char* nextString(FILE* json, size_t* line) {
                 fprintf(stderr, "Error: Line %zu: Memory reallocation error\n",
                     *line);
                 perror("");
-                exit(1);
+                exit(EXIT_FAILURE);
             }
         }
         buffer[i++] = c;
@@ -443,17 +443,17 @@ double nextNumber(FILE* json, size_t* line) {
     errorCheck(status, json, *line);
     if(status < 1) {
         fprintf(stderr, "Error: Line %zu: Invalid number\n", *line);
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     if(errno == ERANGE) {
         if(value == 0) {
             fprintf(stderr, "Error: Line %zu: Number underflow\n", *line);
-            exit(1);
+            exit(EXIT_FAILURE);
         }
         if(value == HUGE_VAL || value == -HUGE_VAL) {
             fprintf(stderr, "Error: Line %zu: Number overflow\n", *line);
-            exit(1);
+            exit(EXIT_FAILURE);
         }
     }
 
@@ -502,7 +502,7 @@ pixel nextColor(FILE* json, size_t* line) {
     if(color < 0 || color > 1.0) {
         fprintf(stderr, "Error: Line %zu: Color must be between 0.0 and 1.0\n",
             *line);
-        exit(1);
+        exit(EXIT_FAILURE);
     }
     pixel.red = color * 255;
 
@@ -515,7 +515,7 @@ pixel nextColor(FILE* json, size_t* line) {
     if(color < 0 || color > 1.0) {
         fprintf(stderr, "Error: Line %zu: Color must be between 0.0 and 1.0\n",
             *line);
-        exit(1);
+        exit(EXIT_FAILURE);
     }
     pixel.green = color * 255;
 
@@ -529,7 +529,7 @@ pixel nextColor(FILE* json, size_t* line) {
     if(color < 0 || color > 1.0) {
         fprintf(stderr, "Error: Line %zu: Color must be between 0.0 and 1.0\n",
             *line);
-        exit(1);
+        exit(EXIT_FAILURE);
     }
     pixel.blue = color * 255;
 

@@ -57,7 +57,7 @@ const sceneObj* shoot(ray ray, const sceneObj* objs, size_t objsSize) {
                 break;
             default:
                 fprintf(stderr, "Error: Invalid obj type\n");
-                exit(1);
+                exit(EXIT_FAILURE);
         }
         if(t > 0 && t < closest) {
             closest = t;
