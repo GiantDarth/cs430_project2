@@ -27,16 +27,16 @@ void raycast(pixel* pixels, size_t width, size_t height, camera camera,
     // Initialize all pixels to black
     memset(pixels, 0, sizeof(*pixels) * width * height);
 
-    for(size_t i = 0; i < width; i++) {
-        point.y = center.y - (camera.height / 2) + PIXEL_HEIGHT * (i + 0.5);
+    for(size_t y = 0; y < height; y++) {
+        point.y = center.y - (camera.height / 2) + PIXEL_HEIGHT * (y + 0.5);
         // Adjust for image inversion
         point.y *= -1;
-        for(size_t j = 0; j < height; j++) {
-            point.x = center.x - (camera.width / 2) + PIXEL_WIDTH * (j + 0.5);
+        for(size_t x = 0; x < width; x++) {
+            point.x = center.x - (camera.width / 2) + PIXEL_WIDTH * (x + 0.5);
             ray.dir = vector3d_normalize(point);
             intersected = shoot(ray, objs, objsSize);
             if(intersected != NULL) {
-                pixels[i * height + j] = shade(*intersected);
+                pixels[y * width + x] = shade(*intersected);
             }
         }
     }
